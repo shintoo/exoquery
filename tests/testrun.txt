@@ -1,0 +1,22 @@
+query> How many planets are within 10% of earth's volume and have an orbital period between 250 and 400 days?
+
+========COLUMN SEARCH========
+{'column_requests': ['planetary volume (relative to Earth)', 'orbital period of the planet']}
+=============================
+
+
+========RETRIEVED COLUMNS====
+'pl_masse,Planet Mass [Earth Mass],"Amount of matter contained in the planet, measured in units of masses of the Earth"'
+'pl_massj,Planet Mass [Jupiter Mass],"Amount of matter contained in the planet, measured in units of masses of Jupiter"'
+'pl_orbper,Orbital Period [days],Time the planet takes to make a complete orbit around the host star or system'
+'st_rotp,Stellar Rotational Period [days],"The time required for the planet host star to complete one rotation, assuming it is a solid body"'
+=============================
+
+
+========ASTROQUERY SEARCH====
+{
+  "select": "pl_name, pl_orbper",
+  "where": "pl_orbper >= 250 AND pl_orbper <= 400 AND pl_masse >= 0.9 AND pl_masse <= 1.1",
+  "order": "pl_orbper ASC"
+}
+=============================
