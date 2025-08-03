@@ -17,7 +17,7 @@ def generate_astroquery_search(user_query, columns_string):
 
 def retrieve_columns(column_search):
     columns = []
-    index = PlanetarySystemsColumnsEmbedding.load_from_file("assets/nexsci_ps_columns.faiss")
+    index = PlanetarySystemsColumnsEmbedding.load_from_file("assets/nexsci_ps_columns.db")
     for query in column_search["column_requests"]:
         results = index.query(query, top_k=2)
         print(f"{query=}:{results=}")

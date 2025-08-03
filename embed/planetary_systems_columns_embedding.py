@@ -6,24 +6,19 @@ from sentence_transformers import SentenceTransformer
 MODEL = "Qwen/Qwen3-Embedding-0.6B"
 
 class PlanetarySystemsColumnsEmbedding:
-    def __init__(self, schema_path: str):
-        print(f"Loading SentenceTransformer({MODEL})...")
-
+    def __init__(self, schema_path: str): 
         self.model = SentenceTransformer(
             MODEL,
             trust_remote_code=True,
             model_kwargs={'torch_dtype': torch.bfloat16}
         )
 
-        print(f"Loaded SentenceTransformer({MODEL}).")
         self.index = None
         self.schema_path = schema_path
         self.column_embeddings = None
         
-        print("Reading schema.")
         with open(schema_path) as f:
             self.columns = [l.strip() for l in f.readlines()]
-        print("Read schema.")
 
     def create_column_embeddings(self):
         self.column_embeddings = self.model.encode(self.columns)
@@ -115,7 +110,7 @@ def test_load(index_filepath):
 if __name__ == "__main__":
     import sys
     schema_path = "assets/nexsci_ps_columns.csv"
-    index_filepath = "assets/nexsci_ps_columns.faiss"
+    index_filepath = "assets/nexsci_ps_columns.db"
 
     if "save" in sys.argv:
         create_and_save_schema_to_index(schema_path, index_filepath)

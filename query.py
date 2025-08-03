@@ -1,0 +1,131 @@
+import json
+
+from ollama import chat, ChatResponse
+from jinja2 import Environment, FileSystemLoader
+
+from embed.planetary_systems_columns_embedding import PlanetarySystemsColumnsEmbedding
+
+env = Environment(loader=FileSystemLoader("assets/prompts"))
+MODEL = 'hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:UD-Q4_K_XL'
+
+
+def generate_column_search(user_query):
+    prompt_template = env.get_template("generate_column_query.prompt.j2")
+    return prompt_template.render({"USER_QUERY": user_query})
+
+def generate_astroquery_search(user_query, columns_string):
+    prompt_template = env.get_template("generate_astroquery.prompt.j2")
+
+    prompt_data = {"USER_QUERY": user_query, "RELEVANT_COLUMNS": columns_string}
+    return prompt_template.render(prompt_data)
+
+def retrieve_columns(column_search, index):
+    columns = []
+
+    for query in column_search["column_requests"]:
+        results = index.query(query, top_k=2)
+        columns.extend(results['columns'])
+
+    return columns
+
+def prompt(prompt):
+    messages = [{"role": "user", "content": prompt}]
+    response = chat(model=MODEL, messages=messages)
+    return response.message.content
+
+def run_interactive():
+    index = PlanetarySystemsColumnsEmbedding.load_from_file("assets/nexsci_ps_columns.db")
+    # 1. Receive user query
+    user_query = input("query> ")
+    # 2. Retrieve column search query
+    column_search_string = prompt(generate_column_search(user_query))
+    column_search_string = column_search_string.replace("```json", "") 
+    column_search_string = column_search_string.replace("```", "") 
+    print(f"{column_search_string=}")
+    column_search = json.loads(column_search_string)
+    print(f"\n========COLUMN SEARCH========")
+    print(column_search)
+    print("=============================\n")
+    # 3. Perform column search
+    relevant_columns = retrieve_columns(column_search, index)
+    print(f"\n========RETRIEVED COLUMNS====")
+    print(relevant_columns)
+    print("=============================\n")
+    # 4. Generate astroquery search
+    astroquery_search = prompt(generate_astroquery_search(user_query, relevant_columns))
+    print(f"\n========ASTROQUERY SEARCH====")
+    print(astroquery_search)
+    print("=============================\n")
+
+def generate_archive_query(query) -> dict:
+    # 0. Load column embeddings
+    if __debug__: print("Loading column embeddings...", end='', flush=True)
+    index = PlanetarySystemsColumnsEmbedding.load_from_file("assets/nexsci_ps_columns.db")
+    if __debug__: print("Done.", flush=True)
+    # 1. Generate prompt for column search
+    if __debug__: print("Generating column search prompt...", end='', flush=True)
+    column_search_prompt = generate_column_search(query)
+    if __debug__: print("Done.", flush=True)
+    # 2. Retrieve genenerated column search query
+    if __debug__: print("Prompting LLM for column search queries...", end='', flush=True)
+    column_search_string = prompt(column_search_prompt)
+    if __debug__: print("Done.", flush=True)
+    # 3. Clean up generation string
+    if __debug__: print("Cleaning generated column search query json...", end='', flush=True)
+    column_search_string = column_search_string.replace("```json", "") 
+    column_search_string = column_search_string.replace("```", "") 
+    if __debug__: print("Done.", flush=True)
+    # 4. Load generation from json
+    if __debug__: print("Loading column search query json...", end='', flush=True)
+    column_search_query = json.loads(column_search_string)
+    if __debug__: print("Done.", flush=True)
+    # 5. Query column embedding using generated column search query
+    if __debug__: print("Querying column embedding database for relevant columns...", end='', flush=True)
+    relevant_columns = retrieve_columns(column_search_query, index)
+    if __debug__: print("Done.", flush=True)
+    # 6. Generate prompt using retrieved columns and original query
+    if __debug__: print("Generating prompt for astroquery search query...", end='', flush=True)
+    astroquery_search_prompt = generate_astroquery_search(query, relevant_columns)
+    if __debug__: print("Done.", flush=True)
+    # 7. Generate astroquery search
+    if __debug__: print("Prompting LLM for astroquery search query...", end='', flush=True)
+    astroquery_search = prompt(astroquery_search_prompt)
+    if __debug__: print("Done.", flush=True)
+    # Load from json string
+    if __debug__: print("Loading search query...", end='', flush=True)
+    archive_query = json.loads(astroquery_search)
+    if __debug__: print("Done.", flush=True)
+
+    return archive_query
+
+
+def test_queries_from_file(queries_filename, target_filename):
+    with open(queries_filename, "r") as f:
+        queries = [l.strip() for l in f.readlines()]
+
+    records = {}
+
+    total = len(queries)
+    current = 1
+    print("Processing ", end='', flush=True)
+
+    for q in queries:
+        print(f"{current} ", end='', flush=True)
+        result = generate_archive_query(q)
+        records[q] = result
+        current += 1
+
+    print()
+
+    with open(target_filename, "w") as f:
+        json.dump(records, f, indent=4)
+
+
+
+if __name__ == "__main__":
+    import sys
+    queries_file = sys.argv[1]
+    results_file = "".join(queries_file.split(".")[:-1]) + "_results.json"
+    print(f"Testing queries from ({queries_file})")
+    test_queries_from_file(queries_file, results_file)
+    print(f"Results written to ({results_file})")

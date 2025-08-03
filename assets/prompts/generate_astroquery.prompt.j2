@@ -10,21 +10,24 @@ Construct a JSON object with up to three keys: "select", "where", and "order".
 - The "where" key should contain the conditions to filter the data, using standard SQL-like syntax (e.g., >, <, =, AND, OR, LIKE).
 **- The "order" key is optional and should be used when the user asks to sort the results (e.g., 'latest', 'oldest', 'largest', 'smallest'). The value should be the column name followed by 'DESC' for descending order (largest to smallest, newest to oldest) or 'ASC' for ascending order (smallest to largest, oldest to newest).**
 
+If a column's data is essential to the question, be sure to include checking whether that column is NULL in the "where" value.
+If searching that a column's value matches a string, always use LIKE and SQL wildcards on both sides.
+
 Example 1:
 User Question: "Show me all planets found by Kepler."
 JSON Output:
 {
-  "select": "pl_name, hostname, discoverymethod",
-  "where": "discoverymethod LIKE '%Kepler%'"
+  "select": "pl_name, hostname, disc_telescope",
+  "where": "disc_telescope LIKE '%Kepler%'"
 }
 
 **Example 2:**
 **User Question: "Find the 5 largest planets discovered before 2020."**
 **JSON Output:**
 {
- "select": "pl_name, pl_radj, disc_year",**
- "where": "disc_year < 2020",**
- "order": "pl_radj DESC"**
+ "select": "pl_name, pl_radj, disc_year",
+ "where": "disc_year < 2020 AND pl_radj IS NOT NULL",
+ "order": "pl_radj DESC"
 }
 
 Now, based on the user's request and the available columns, generate the JSON object.

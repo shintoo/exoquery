@@ -1,0 +1,27 @@
+{
+    "What is the most recent discovery made by TESS?": {
+        "select": "pl_name, disc_telescope, disc_year, disc_pubdate",
+        "where": "disc_telescope LIKE '%TESS%'",
+        "order": "disc_year DESC"
+    },
+    "How many discovered exoplanets are smaller than Earth in radius?": {
+        "select": "pl_name, pl_rade",
+        "where": "pl_rade < 1",
+        "order": "pl_rade ASC"
+    },
+    "Has TESS discovered as many exoplanets as Kepler?": {
+        "select": "disc_telescope, COUNT(*) as planet_count",
+        "where": "disc_telescope IN ('Kepler', 'TESS')",
+        "order": "disc_telescope ASC"
+    },
+    "What's the biggest planet with an orbital period less than 1 day?": {
+        "select": "pl_name, pl_rade, pl_orbper",
+        "where": "pl_orbper < 1",
+        "order": "pl_rade DESC"
+    },
+    "What's the most distant exoplanet discovered?": {
+        "select": "pl_name, sy_dist",
+        "where": "sy_dist IS NOT NULL",
+        "order": "sy_dist DESC"
+    }
+}
