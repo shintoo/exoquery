@@ -39,8 +39,8 @@ def run_interactive():
     user_query = input("query> ")
     # 2. Retrieve column search query
     column_search_string = prompt(generate_column_search(user_query))
-    column_search_string = column_search_string.replace("```json", "") 
-    column_search_string = column_search_string.replace("```", "") 
+    column_search_string = column_search_string.replace("```json", "")
+    column_search_string = column_search_string.replace("```", "")
     print(f"{column_search_string=}")
     column_search = json.loads(column_search_string)
     print(f"\n========COLUMN SEARCH========")
@@ -64,41 +64,54 @@ def generate_archive_query(query) -> dict:
         index = PlanetarySystemsColumnsEmbedding.load_from_file("assets/nexsci_ps_columns.db")
     except Exception as e:
         print(f"Failed to load embeddings database from assets/nexsci_ps_columns.db. Generate it with `python embed/planetary_systems_columns_embeddings.py save`. error: {e}.")
-        raise e 
+        raise e
     if __debug__: print("Done.", flush=True)
-    # 1. Generate prompt for column search
-    if __debug__: print("Generating column search prompt...", end='', flush=True)
+
+    # Generate prompt for column search
     column_search_prompt = generate_column_search(query)
-    if __debug__: print("Done.", flush=True)
-    # 2. Retrieve genenerated column search query
+
+    # Retrieve genenerated column search query
     if __debug__: print("Prompting LLM for column search queries...", end='', flush=True)
     column_search_string = prompt(column_search_prompt)
     if __debug__: print("Done.", flush=True)
-    # 3. Clean up generation string
-    if __debug__: print("Cleaning generated column search query json...", end='', flush=True)
-    column_search_string = column_search_string.replace("```json", "") 
-    column_search_string = column_search_string.replace("```", "") 
-    if __debug__: print("Done.", flush=True)
-    # 4. Load generation from json
-    if __debug__: print("Loading column search query json...", end='', flush=True)
+
+    # Clean up generation string
+    column_search_string = column_search_string.replace("```json", "")
+    column_search_string = column_search_string.replace("```", "")
+
+    # Load generation from json
     column_search_query = json.loads(column_search_string)
-    if __debug__: print("Done.", flush=True)
-    # 5. Query column embedding using generated column search query
+
+    # Query column embedding using generated column search query
     if __debug__: print("Querying column embedding database for relevant columns...", end='', flush=True)
     relevant_columns = retrieve_columns(column_search_query, index)
     if __debug__: print("Done.", flush=True)
-    # 6. Generate prompt using retrieved columns and original query
-    if __debug__: print("Generating prompt for astroquery search query...", end='', flush=True)
+
+    # Generate prompt using retrieved columns and original query
     astroquery_search_prompt = generate_astroquery_search(query, relevant_columns)
-    if __debug__: print("Done.", flush=True)
-    # 7. Generate astroquery search
+
+    # Generate astroquery search
     if __debug__: print("Prompting LLM for astroquery search query...", end='', flush=True)
     astroquery_search = prompt(astroquery_search_prompt)
     if __debug__: print("Done.", flush=True)
+
     # Load from json string
-    if __debug__: print("Loading search query...", end='', flush=True)
     archive_query = json.loads(astroquery_search)
-    if __debug__: print("Done.", flush=True)
+
+    # Ensure pl_name is queried
+    if "pl_name" not in archive_query["select"]:
+        archive_query["select"] = "pl_name, " + archive_query["select"]
+
+    # Ensure we only query for the default parameter set for each planet
+    if "where" not in archive_query:
+        archive_query["where"] = "default_flag = 1"
+    elif "default_flag" not in archive_query["where"]:
+        if len(archive_query["where"]) > 0:
+            archive_query["where"] += " AND "
+
+        archive_query["where"] += "default_flag = 1"
+
+    print(f"ARCHIVE_QUERY: {archive_query}")
 
     return archive_query
 
