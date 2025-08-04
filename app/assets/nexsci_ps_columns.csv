@@ -13,8 +13,8 @@ sy_pnum,Number of Planets,Number of confirmed planets in the planetary system
 sy_mnum,Number of Moons,Number of moons in the planetary system
 cb_flag,Circumbinary Flag,"Flag indicating whether the planet orbits a binary system (1=yes, 0=no)"
 discoverymethod,Discovery Method,Method by which the planet was first identified. How the planet was discovered. Transit Radial Velocity Microlensing Timing
-disc_year,Discovery Year,Year the planet was discovered
-disc_pubdate,Discovery Publication Date,Publication Date of the planet discovery referee publication. This is when the planet was discovered. Planet discovery date
+disc_year,Discovery Year,Only the year of the discovery
+disc_pubdate,Discovery Publication Date,When the planet was discovered. Planet discovery date
 disc_locale,Discovery Locale,Location of observation of planet discovery (Ground or Space)
 disc_facility,Discovery Facility,Name of facility of planet discovery observations
 disc_telescope,Discovery Telescope,Name of telescope of planet discovery observations. This is where the telescope that discovered the planet is located. Discovery telescope.

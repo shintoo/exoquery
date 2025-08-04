@@ -46,14 +46,12 @@ class PlanetarySystemsColumnsEmbedding:
         return idx
 
     def enhance_query(self, query):
-        query = query.lower()
-      
         with open("assets/telescopes") as f:
             telescopes = f.readlines()
 
         for telescope in telescopes:
-            if telescope.lower() + " telescope" not in query:
-                query = query.replace(telescope.lower(), query + " telescope")
+            if telescope.lower() + " telescope" not in query.lower():
+                query = query.replace(telescope.lower(), telescope + " Telescope")
 
         return query
 

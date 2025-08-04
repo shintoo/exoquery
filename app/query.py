@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 
 from ollama import chat, ChatResponse
@@ -16,7 +17,9 @@ def generate_column_search(user_query):
 def generate_astroquery_search(user_query, columns_string):
     prompt_template = env.get_template("generate_astroquery.prompt.j2")
 
-    prompt_data = {"USER_QUERY": user_query, "RELEVANT_COLUMNS": columns_string}
+    date = str(datetime.now()).split(" ")[0]
+
+    prompt_data = {"USER_QUERY": user_query, "RELEVANT_COLUMNS": columns_string, "CURRENT_DATE": date}
     return prompt_template.render(prompt_data)
 
 def retrieve_columns(column_search, index):
@@ -102,6 +105,14 @@ def generate_archive_query(query) -> dict:
     if "pl_name" not in archive_query["select"]:
         archive_query["select"] = "pl_name, " + archive_query["select"]
 
+    # Final checks and improvements
+    archive_query = enhance_query(archive_query)
+
+    print(f"ARCHIVE_QUERY: {archive_query}")
+    return archive_query
+
+
+def enhance_query(archive_query):
     # Ensure we only query for the default parameter set for each planet
     if "where" not in archive_query:
         archive_query["where"] = "default_flag = 1"
@@ -111,7 +122,17 @@ def generate_archive_query(query) -> dict:
 
         archive_query["where"] += "default_flag = 1"
 
-    print(f"ARCHIVE_QUERY: {archive_query}")
+    # If pl_radj or pl_rade is included, include the other.
+    if "pl_radj" in archive_query["select"]:
+        archive_query["select"] = archive_query["select"].replace("pl_radj", "pl_rade, pl_radj")
+    elif "pl_rade" in archive_query["select"]:
+        archive_query["select"] = archive_query["select"].replace("pl_rade", "pl_rade, pl_radj")
+
+    # Same for pl_massj/pl_masse.
+    if "pl_massj" in archive_query["select"]:
+        archive_query["select"] = archive_query["select"].replace("pl_massj", "pl_masse, pl_massj")
+    elif "pl_masse" in archive_query["select"]:
+        archive_query["select"] = archive_query["select"].replace("pl_masse", "pl_masse, pl_massj")
 
     return archive_query
 

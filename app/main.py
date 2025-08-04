@@ -2,12 +2,18 @@ import json
 from io import StringIO
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from astroquery.ipac.nexsci.nasa_exoplanet_archive import NasaExoplanetArchive
 
 from .query import generate_archive_query
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+)
 
 @app.get("/api/query")
 async def run_query(s):
