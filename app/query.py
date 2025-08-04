@@ -60,7 +60,11 @@ def run_interactive():
 def generate_archive_query(query) -> dict:
     # 0. Load column embeddings
     if __debug__: print("Loading column embeddings...", end='', flush=True)
-    index = PlanetarySystemsColumnsEmbedding.load_from_file("assets/nexsci_ps_columns.db")
+    try:
+        index = PlanetarySystemsColumnsEmbedding.load_from_file("assets/nexsci_ps_columns.db")
+    except Exception as e:
+        print(f"Failed to load embeddings database from assets/nexsci_ps_columns.db. Generate it with `python embed/planetary_systems_columns_embeddings.py save`. error: {e}.")
+        raise e 
     if __debug__: print("Done.", flush=True)
     # 1. Generate prompt for column search
     if __debug__: print("Generating column search prompt...", end='', flush=True)
