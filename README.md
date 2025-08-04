@@ -8,17 +8,17 @@ Natural language interface for querying the NASA Exoplanet Archive.
 Generated column search queries:
 ```json
 {
-    'column_requests': [
-        'planetary radius or mass (to determine size/smallest planets)',
-        'orbital period of the planet'
+    "column_requests": [
+        "planetary radius or mass (to determine size/smallest planets)",
+        "orbital period of the planet"
     ]
 }
 ```
 
 Column results from embedding retrievals:
 ```csv
-pl_radj,Planet Radius [Jupiter Radius],"Radius of the planet, measured in units of radius of Jupiter"'
-'pl_rade,Planet Radius [Earth Radius],"Radius of the planet, measured in units of radius of the Earth"
+pl_radj,Planet Radius [Jupiter Radius],"Radius of the planet, measured in units of radius of Jupiter"
+pl_rade,Planet Radius [Earth Radius],"Radius of the planet, measured in units of radius of the Earth"
 pl_orbper,Orbital Period [days],Time the planet takes to make a complete orbit around the host star or system
 ```
 
