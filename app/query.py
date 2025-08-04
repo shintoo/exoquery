@@ -3,7 +3,7 @@ import json
 from ollama import chat, ChatResponse
 from jinja2 import Environment, FileSystemLoader
 
-from embed.planetary_systems_columns_embedding import PlanetarySystemsColumnsEmbedding
+from .embed.planetary_systems_columns_embedding import PlanetarySystemsColumnsEmbedding
 
 env = Environment(loader=FileSystemLoader("assets/prompts"))
 MODEL = 'hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:UD-Q4_K_XL'
