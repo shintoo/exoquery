@@ -6,7 +6,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from .embed.planetary_systems_columns_embedding import PlanetarySystemsColumnsEmbedding
 
-env = Environment(loader=FileSystemLoader("assets/prompts"))
+env = Environment(loader=FileSystemLoader("app/assets/prompts"))
 MODEL = 'hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:UD-Q4_K_XL'
 
 
@@ -37,7 +37,7 @@ def prompt(prompt):
     return response.message.content
 
 def run_interactive():
-    index = PlanetarySystemsColumnsEmbedding.load_from_file("assets/nexsci_ps_columns.db")
+    index = PlanetarySystemsColumnsEmbedding.load_from_file("app/assets/nexsci_ps_columns.db")
     # 1. Receive user query
     user_query = input("query> ")
     # 2. Retrieve column search query
@@ -60,16 +60,7 @@ def run_interactive():
     print(astroquery_search)
     print("=============================\n")
 
-def generate_archive_query(query) -> dict:
-    # 0. Load column embeddings
-    if __debug__: print("Loading column embeddings...", end='', flush=True)
-    try:
-        index = PlanetarySystemsColumnsEmbedding.load_from_file("assets/nexsci_ps_columns.db")
-    except Exception as e:
-        print(f"Failed to load embeddings database from assets/nexsci_ps_columns.db. Generate it with `python embed/planetary_systems_columns_embeddings.py save`. error: {e}.")
-        raise e
-    if __debug__: print("Done.", flush=True)
-
+def generate_archive_query(query, index) -> dict:
     # Generate prompt for column search
     column_search_prompt = generate_column_search(query)
 
@@ -81,6 +72,9 @@ def generate_archive_query(query) -> dict:
     # Clean up generation string
     column_search_string = column_search_string.replace("```json", "")
     column_search_string = column_search_string.replace("```", "")
+
+    # Trim output to just the JSON code
+    column_search_string = column_search_string[column_search_string.find("{"):column_search_string.rfind("}")+1]
 
     # Load generation from json
     column_search_query = json.loads(column_search_string)
@@ -98,12 +92,17 @@ def generate_archive_query(query) -> dict:
     astroquery_search = prompt(astroquery_search_prompt)
     if __debug__: print("Done.", flush=True)
 
+    # Clean up generation string
+    astroquery_search = astroquery_search.replace("```json", "")
+    astroquery_search = astroquery_search.replace("```", "")
+
     # Load from json string
     archive_query = json.loads(astroquery_search)
 
     # Ensure pl_name is queried
     if "pl_name" not in archive_query["select"]:
         archive_query["select"] = "pl_name, " + archive_query["select"]
+
 
     # Final checks and improvements
     archive_query = enhance_query(archive_query)

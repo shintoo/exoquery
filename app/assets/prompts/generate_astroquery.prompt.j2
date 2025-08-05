@@ -14,6 +14,7 @@ Construct a JSON object with up to three keys: "select", "where", and "order".
 
 If a column's data is essential to the question, be sure to include checking whether that column is NULL in the "where" value.
 If searching that a column's value matches a string, always use LIKE and SQL wildcards on both sides.
+Do not ever use group functions, like AVG, COUNT, MAX, MIN, or SUM. Always prefer to sort using the "order" field. If the user asks for a count of something, simply query just for that something, without using COUNT.
 
 Example 1:
 User Question: "Show me all planets found by Kepler."
@@ -23,13 +24,22 @@ JSON Output:
   "where": "disc_telescope LIKE '%Kepler%'"
 }
 
-**Example 2:**
-**User Question: "Find the 5 largest planets discovered before 2020."**
-**JSON Output:**
+Example 2:
+User Question: "Find the 5 largest planets discovered before 2020."
+JSON Output:
 {
  "select": "pl_name, pl_radj, disc_year",
  "where": "disc_year < 2020 AND pl_radj IS NOT NULL",
  "order": "pl_radj DESC"
+}
+
+Example 3:
+User Question: "How many planets were discovered with the radial velocity method using Keck in 2019?
+JSON Output:
+{
+ "select": "pl_name, discoverymethod, disc_facility, disc_year, disc_pubdate",
+ "where": "disc_year = 2019 AND disc_facility LIKE '%Keck%' AND discoverymethod = 'Radial Velocity'",
+ "order": "disc_pubdate ASC"
 }
 
 Now, based on the user's request and the available columns, generate the JSON object.

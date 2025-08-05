@@ -46,7 +46,7 @@ class PlanetarySystemsColumnsEmbedding:
         return idx
 
     def enhance_query(self, query):
-        with open("assets/telescopes") as f:
+        with open("app/assets/telescopes") as f:
             telescopes = f.readlines()
 
         for telescope in telescopes:
@@ -73,7 +73,7 @@ class PlanetarySystemsColumnsEmbedding:
 
 def test(query):
     print("Loading schema.", flush=True)
-    index = PlanetarySystemsColumnsEmbedding("assets/nexsci_ps_columns.csv")
+    index = PlanetarySystemsColumnsEmbedding("app/assets/nexsci_ps_columns.csv")
     print("Loaded schema.\nCreating index.", flush=True)
     index.create_index()
     print(f"Created index. Querying ({query=})...", flush=True)
@@ -107,8 +107,8 @@ def test_load(index_filepath):
 
 if __name__ == "__main__":
     import sys
-    schema_path = "assets/nexsci_ps_columns.csv"
-    index_filepath = "assets/nexsci_ps_columns.db"
+    schema_path = "app/assets/nexsci_ps_columns.csv"
+    index_filepath = "app/assets/nexsci_ps_columns.db"
 
     if "save" in sys.argv:
         create_and_save_schema_to_index(schema_path, index_filepath)
