@@ -99,10 +99,16 @@ def generate_archive_query(query, index) -> dict:
     # Load from json string
     archive_query = json.loads(astroquery_search)
 
+    # Ensure pl_hostname is queried
+    if "hostname" not in archive_query["select"]:
+        if "pl_name" in archive_query["select"]:
+            archive_query["select"] = archive_query["select"].replace("pl_name", "pl_name, hostname")
+        else:
+            archive_query["select"] = "hostname, " + archive_query["select"]
+
     # Ensure pl_name is queried
     if "pl_name" not in archive_query["select"]:
         archive_query["select"] = "pl_name, " + archive_query["select"]
-
 
     # Final checks and improvements
     archive_query = enhance_query(archive_query)
