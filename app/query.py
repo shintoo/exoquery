@@ -1,28 +1,13 @@
 from datetime import datetime
 import json
-
-from ollama import chat, ChatResponse
-from jinja2 import Environment, FileSystemLoader
+from .prompt import prompt_from_template, prompt_dict_from_template
 
 from .embed.planetary_systems_columns_embedding import PlanetarySystemsColumnsEmbedding
 
-env = Environment(loader=FileSystemLoader("app/assets/prompts"))
 MODEL = 'hf.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:UD-Q4_K_XL'
 
 
-def generate_column_search(user_query):
-    prompt_template = env.get_template("generate_column_query.prompt.j2")
-    return prompt_template.render({"USER_QUERY": user_query})
-
-def generate_astroquery_search(user_query, columns_string):
-    prompt_template = env.get_template("generate_astroquery.prompt.j2")
-
-    date = str(datetime.now()).split(" ")[0]
-
-    prompt_data = {"USER_QUERY": user_query, "RELEVANT_COLUMNS": columns_string, "CURRENT_DATE": date}
-    return prompt_template.render(prompt_data)
-
-def retrieve_columns(column_search, index):
+def retrieve_columns(column_search: dict, index: PlanetarySystemsColumnsEmbedding):
     columns = []
 
     for query in column_search["column_requests"]:
@@ -31,74 +16,37 @@ def retrieve_columns(column_search, index):
 
     return columns
 
-def prompt(prompt):
-    messages = [{"role": "user", "content": prompt}]
-    response = chat(model=MODEL, messages=messages)
-    return response.message.content
 
-def run_interactive():
-    index = PlanetarySystemsColumnsEmbedding.load_from_file("app/assets/nexsci_ps_columns.db")
-    # 1. Receive user query
-    user_query = input("query> ")
-    # 2. Retrieve column search query
-    column_search_string = prompt(generate_column_search(user_query))
-    column_search_string = column_search_string.replace("```json", "")
-    column_search_string = column_search_string.replace("```", "")
-    print(f"{column_search_string=}")
-    column_search = json.loads(column_search_string)
-    print(f"\n========COLUMN SEARCH========")
-    print(column_search)
-    print("=============================\n")
-    # 3. Perform column search
-    relevant_columns = retrieve_columns(column_search, index)
-    print(f"\n========RETRIEVED COLUMNS====")
-    print(relevant_columns)
-    print("=============================\n")
-    # 4. Generate astroquery search
-    astroquery_search = prompt(generate_astroquery_search(user_query, relevant_columns))
-    print(f"\n========ASTROQUERY SEARCH====")
-    print(astroquery_search)
-    print("=============================\n")
-
-def generate_archive_query(query, index) -> dict:
-    # Generate prompt for column search
-    column_search_prompt = generate_column_search(query)
-
+def generate_archive_query(query: str, index: PlanetarySystemsColumnsEmbedding) -> dict:
     # Retrieve genenerated column search query
     if __debug__: print("Prompting LLM for column search queries...", end='', flush=True)
-    column_search_string = prompt(column_search_prompt)
+    column_search = prompt_dict_from_template("generate_column_query.prompt.j2", {"USER_QUERY": query})
     if __debug__: print("Done.", flush=True)
-
-    # Clean up generation string
-    column_search_string = column_search_string.replace("```json", "")
-    column_search_string = column_search_string.replace("```", "")
-
-    # Trim output to just the JSON code
-    column_search_string = column_search_string[column_search_string.find("{"):column_search_string.rfind("}")+1]
-
-    # Load generation from json
-    column_search_query = json.loads(column_search_string)
 
     # Query column embedding using generated column search query
     if __debug__: print("Querying column embedding database for relevant columns...", end='', flush=True)
-    relevant_columns = retrieve_columns(column_search_query, index)
+    relevant_columns = retrieve_columns(column_search, index)
     if __debug__: print("Done.", flush=True)
-
-    # Generate prompt using retrieved columns and original query
-    astroquery_search_prompt = generate_astroquery_search(query, relevant_columns)
 
     # Generate astroquery search
     if __debug__: print("Prompting LLM for astroquery search query...", end='', flush=True)
-    astroquery_search = prompt(astroquery_search_prompt)
+    archive_query = prompt_dict_from_template("generate_astroquery.prompt.j2", {
+        "USER_QUERY": query,
+        "RELEVANT_COLUMNS": relevant_columns,
+        "CURRENT_DATE": datetime.now().strftime("%Y-%m-%d")
+    })
     if __debug__: print("Done.", flush=True)
 
-    # Clean up generation string
-    astroquery_search = astroquery_search.replace("```json", "")
-    astroquery_search = astroquery_search.replace("```", "")
+    # Final checks and improvements
+    archive_query = enhance_query(archive_query)
 
-    # Load from json string
-    archive_query = json.loads(astroquery_search)
+    columns = [col.strip() for col in archive_query["select"].split(",")]
 
+    if __debug__: print(f"Final archive query: {archive_query}")
+    return archive_query, columns
+
+
+def enhance_query(archive_query):
     # Ensure pl_hostname is queried
     if "hostname" not in archive_query["select"]:
         if "pl_name" in archive_query["select"]:
@@ -109,20 +57,12 @@ def generate_archive_query(query, index) -> dict:
     # Ensure pl_name is queried
     if "pl_name" not in archive_query["select"]:
         archive_query["select"] = "pl_name, " + archive_query["select"]
-
-    # Final checks and improvements
-    archive_query = enhance_query(archive_query)
-
-    columns = [col.strip() for col in archive_query["select"].split(",")]
-
-    print(f"ARCHIVE_QUERY: {archive_query}")
-    return archive_query, columns
-
-
-def enhance_query(archive_query):
-    # Ensure we only query for the default parameter set for each planet
     if "where" not in archive_query:
         archive_query["where"] = "default_flag = 1"
+
+
+    # Ensure we only query for the default parameter set for each planet
+    # TODO should we be using pscomppars instead? need to rerun vec embed
     elif "default_flag" not in archive_query["where"]:
         if len(archive_query["where"]) > 0:
             archive_query["where"] += " AND "

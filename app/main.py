@@ -10,7 +10,8 @@ from fastapi.responses import PlainTextResponse
 from jinja2 import Environment, FileSystemLoader
 
 from .embed.planetary_systems_columns_embedding import PlanetarySystemsColumnsEmbedding
-from .query import generate_archive_query, prompt, env
+from .query import generate_archive_query
+from .prompt import prompt_dict_from_template
 
 app = FastAPI()
 
@@ -34,20 +35,11 @@ async def run_query(s):
     obuf = StringIO()
     result.write(obuf, format="ascii.csv", overwrite=True) # TODO convert csv to json? not supported by Astroquery ootb
 
-    summary = "Found planets" # TODO WIP using db query and column descriptions to generate summary
-
-    query_summary_prompt_template = env.get_template("generate_query_summary.prompt.j2")
-    query_summary_prompt = query_summary_prompt_template.render({
+    query_summary = prompt_dict_from_template("generate_query_summary.prompt.j2", {
         "DATABASE_QUERY": archive_query,
         "COLUMN_DESCRIPTIONS": [f"{columns[i]}: {column_descriptions[i]}" for i in range(len(columns))]
     })
-    summary_json = prompt(query_summary_prompt)
-
-    try:
-        summary = json.loads(summary_json)["translation"]
-    except Exception as e:
-        print(f"Error generating query summary: {e}")
-        summary = "Found {planet_count} planets."
+    query_summary = query_summary["translation"]
 
     result_csv = obuf.getvalue()
 
@@ -57,7 +49,7 @@ async def run_query(s):
     columns = fields[0]
     planets = fields[1:]
     planet_count = len(planets)
-    summary = summary.replace("Found planets", f"Found {planet_count} planets")
+    query_summary = query_summary.replace("Found planets", f"Found {planet_count} planets")
 
     hostname_count = len(set(field[1] for field in planets))
 
@@ -65,7 +57,7 @@ async def run_query(s):
         "columns": columns,
         "column_descriptions": [index.get_description(c).split(":")[0] for c in columns],
         "planets": planets,
-        "summary": summary,
+        "summary": query_summary,
         "planet_count": planet_count,
         "hostname_count": hostname_count
     }
