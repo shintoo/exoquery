@@ -6,7 +6,7 @@ from sentence_transformers import SentenceTransformer
 MODEL = "Qwen/Qwen3-Embedding-0.6B"
 
 class PlanetarySystemsColumnsEmbedding:
-    def __init__(self, schema_path: str): 
+    def __init__(self, schema_path: str):
         self.model = SentenceTransformer(
             MODEL,
             trust_remote_code=True,
@@ -16,9 +16,19 @@ class PlanetarySystemsColumnsEmbedding:
         self.index = None
         self.schema_path = schema_path
         self.column_embeddings = None
-        
+        self.column_descriptions = {}
+
         with open(schema_path) as f:
             self.columns = [l.strip() for l in f.readlines()]
+
+
+        self.column_descriptions = {}
+        for col in self.columns:
+            fields = col.split(",")
+            self.column_descriptions[fields[0]] = f"{fields[1]}: {fields[2]}"
+
+    def get_description(self, column: str):
+        return self.column_descriptions[column]
 
     def create_column_embeddings(self):
         self.column_embeddings = self.model.encode(self.columns)
@@ -31,7 +41,7 @@ class PlanetarySystemsColumnsEmbedding:
         self.index.add(self.column_embeddings)
 
         return self.index
-    
+
     def save_to_file(self, index_path: str):
         with open(index_path, "wb") as f:
             pickle.dump((self.columns, self.schema_path, self.index), f)
@@ -96,13 +106,13 @@ def create_and_save_schema_to_index(schema_path, index_filepath):
     print(f"Created index. Saving to {index_filepath}")
     index.save_to_file(index_filepath)
     print("Done.")
-   
+
 
 def test_load(index_filepath):
     print(f"Loading embedding from {index_filepath}...")
     index = PlanetarySystemsColumnsEmbedding.load_from_file(index_filepath)
     print(f"Done.")
-          
+
     return index
 
 if __name__ == "__main__":

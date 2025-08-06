@@ -113,8 +113,10 @@ def generate_archive_query(query, index) -> dict:
     # Final checks and improvements
     archive_query = enhance_query(archive_query)
 
+    columns = [col.strip() for col in archive_query["select"].split(",")]
+
     print(f"ARCHIVE_QUERY: {archive_query}")
-    return archive_query
+    return archive_query, columns
 
 
 def enhance_query(archive_query):
